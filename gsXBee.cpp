@@ -1,10 +1,7 @@
 // XBee class for GroveStreams wireless sensor network.
 //
-// "GroveStreams Sensor Node"
-// by Jack Christensen is licensed under CC BY-SA 4.0,
+// This work by Jack Christensen is licensed under CC BY-SA 4.0,
 // http://creativecommons.org/licenses/by-sa/4.0/
-//
-//CompID_ssmmnnww where ss=second to transmit, mm=transmit interval in minutes, nn=transmit offset in minutes, ww=warmup time in seconds
 
 #include <gsXBee.h>
 
