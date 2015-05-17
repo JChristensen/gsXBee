@@ -1,4 +1,4 @@
-// XBee class for GroveStreams wireless sensor network.
+// Arduino XBee Library for GroveStreams Wireless Sensor Network.
 //
 // This work by Jack Christensen is licensed under CC BY-SA 4.0,
 // http://creativecommons.org/licenses/by-sa/4.0/

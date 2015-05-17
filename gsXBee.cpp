@@ -1,14 +1,12 @@
-// XBee class for GroveStreams wireless sensor network.
+// Arduino XBee Library for GroveStreams Wireless Sensor Network.
 //
 // This work by Jack Christensen is licensed under CC BY-SA 4.0,
 // http://creativecommons.org/licenses/by-sa/4.0/
 
 #include <gsXBee.h>
 
-gsXBee::gsXBee(void)
+gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 {
-    destAddr = XBeeAddress64(0x0, 0x0);     //coordinator is destination
-    disassocReset = false;
 }
 
 //read the XBee until a certain type of message is received, or until a certain amount of time has passed.
@@ -321,7 +319,7 @@ void gsXBee::parseNodeID(char* ni)
 //reset the mcu
 void gsXBee::mcuReset(uint32_t dly)
 {
-    if ( dly > 4 ) delay(dly - 4);
+    if ( dly > 4000 ) delay(dly - 4000);
     Serial << millis() << F(" Reset in");
     wdt_enable(WDTO_4S);
     int countdown = 4;
