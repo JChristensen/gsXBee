@@ -10,13 +10,12 @@ Jack Christensen May 2015
 ##Description
 This library is derived from Andrew Rapp's XBee library to provide additional functionality for a GroveStreams wireless sensor network.
 
-**Prerequisites**
-Andrew Rapp's XBee library
+**Prerequisites**  
+Andrew Rapp's XBee library  
 http://github.com/andrewrapp/xbee-arduino
 
-Mikal Hart's Streaming library
+Mikal Hart's Streaming library  
 http://arduiniana.org/libraries/streaming/
-
 
 ## Installation ##
 To use the **gsXBee** library:  
