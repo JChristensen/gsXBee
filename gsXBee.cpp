@@ -317,7 +317,7 @@ void gsXBee::parseNodeID(char* ni)
 }
 
 //reset the mcu
-void GroveStreams::mcuReset(uint32_t dly)
+void gsXBee::mcuReset(uint32_t dly)
 {
     if ( dly > 4000 ) delay(dly - 4000);
     Serial << millis() << F(" Reset in");
