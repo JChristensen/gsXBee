@@ -121,7 +121,7 @@ xbeeReadStatus_t gsXBee::read(void)
                 case DISASSOCIATED:
                     Serial << F("XB DISASC\n");
                     assocStatus = 0xFF;
-                    if (disassocReset) mcuReset(0);        //restart and hope to reassociate
+                    if (disassocReset) mcuReset();         //restart and hope to reassociate
                     break;
                 default:
                     Serial << F("XB MDM STAT 0x") << _HEX(msrResponse) << endl;
@@ -317,7 +317,7 @@ void gsXBee::parseNodeID(char* ni)
 }
 
 //reset the mcu
-void gsXBee::mcuReset(uint32_t dly)
+void GroveStreams::mcuReset(uint32_t dly)
 {
     if ( dly > 4000 ) delay(dly - 4000);
     Serial << millis() << F(" Reset in");
@@ -329,3 +329,4 @@ void gsXBee::mcuReset(uint32_t dly)
         delay(1000);
     }
 }
+

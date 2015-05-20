@@ -54,19 +54,22 @@ public:
     xbeeReadStatus_t read(void);
     void sendCommand(uint8_t* cmd);
     void sendData(char* data);
-    void mcuReset(uint32_t dly);
+    void mcuReset(uint32_t dly = 0 );
 
-    char compID[10];          //our component ID
-    uint8_t txSec;            //transmit on this second, 0 <= txSec < 60
-    uint8_t txInterval;       //transmission interval in minutes, 0 <= txInterval < 100
-    uint8_t txOffset;         //minute offset to transmit, 0 <= txOffset < txInterval
-    uint8_t txWarmup;         //seconds to wake before transmission time, to allow sensors to produce data, etc.
-    uint8_t assocStatus;      //association status as returned in response from the AI command
-    int8_t rss;               //received signal strength, dBm
-    bool disassocReset;       //flag to reset MCU when XBee disassociation occurs
-    char atCmdRecd[4];        //the AT command responded to in an AT Command Response packet (two chars with zero terminator)
-    char sendingCompID[10];   //sender's component ID from received packet
-    char payload[PAYLOAD_LEN];
+    char compID[10];            //our component ID
+    uint8_t txSec;              //transmit on this second, 0 <= txSec < 60
+    uint8_t txInterval;         //transmission interval in minutes, 0 <= txInterval < 100
+    uint8_t txOffset;           //minute offset to transmit, 0 <= txOffset < txInterval
+    uint8_t txWarmup;           //seconds to wake before transmission time, to allow sensors to produce data, etc.
+    uint8_t assocStatus;        //association status as returned in response from the AI command
+    int8_t rss;                 //received signal strength, dBm
+    bool disassocReset;         //flag to reset MCU when XBee disassociation occurs
+    char packetType;            //D = data packet
+    XBeeAddress64 sendingAddr;  //address of node that sent packet
+    XBeeAddress64 destAddr;     //destination address
+    char atCmdRecd[4];          //the AT command responded to in an AT Command Response packet (two chars with zero terminator)
+    char sendingCompID[10];     //sender's component ID from received packet
+    char payload[PAYLOAD_LEN];  //XBee payload
 
 private:
     bool parsePacket(void);
@@ -75,9 +78,6 @@ private:
     void parseNodeID(char* nodeID);
 
     uint32_t msTX;                       //last XBee transmission time from millis()
-    char packetType;                     //D = data packet
-    XBeeAddress64 sendingAddr;           //address of node that sent packet
-    XBeeAddress64 destAddr;              //destination address
     ZBTxStatusResponse zbStat;
     AtCommandResponse atResp;
     ModemStatusResponse zbMSR;

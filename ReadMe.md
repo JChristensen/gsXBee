@@ -8,7 +8,7 @@ Jack Christensen May 2015
 "Arduino XBee Library for GroveStreams Wireless Sensor Network" by Jack Christensen is licensed under CC BY-SA 4.0.
 
 ##Description
-This library is derived from Andrew Rapp's XBee library to provide additional functionality for a GroveStreams wireless sensor network.
+This library is derived from Andrew Rapp's XBee library to provide additional functionality for a GroveStreams wireless sensor network. See my [GroveStreams library](https://github.com/JChristensen/GroveStreams) for more information, example sketches and schematics for gateway and sensor nodes.
 
 **Prerequisites**  
 Andrew Rapp's XBee library  
@@ -22,7 +22,7 @@ To use the **gsXBee** library:
 - Go to https://github.com/JChristensen/gsXBee, click the **Download ZIP** button and save the ZIP file to a convenient location on your PC.
 - Uncompress the downloaded file.  This will result in a folder containing all the files for the library, that has a name that includes the branch name, usually **gsXBee-master**.
 - Rename the folder to just **gsXBee**.
-- Copy the renamed folder to the Arduino sketchbook\libraries folder.
+- Copy the renamed folder to the Arduino **sketchbook\libraries** folder.
 
 ## Constructor ##
 
@@ -32,18 +32,18 @@ Instantiates a gsXBee object.
 #####Syntax
 `gsXBee myXBee;`
 #####Parameters
-*None.*
+None.
 
 ## Methods ##
 ###read(void)
 #####Description
 Checks the XBee for incoming traffic and processes it.
 #####Syntax
-`myXBee.read(void);`
+`myXBee.read();`
 #####Parameters
 None.
 #####Returns
-Type of traffic received, or various error indications. See the `xbeeReadStatus_t` enumeration in the gsXBee.h file *(xbeeReadStatus_t)*.
+Type of traffic received, or various error indications. See the `xbeeReadStatus_t` enumeration in the [gsXBee.h file](https://github.com/JChristensen/gsXBee/blob/master/gsXBee.h) *(xbeeReadStatus_t)*.
 #####Example
 ```c++
 gsXBee myXBee;
@@ -54,13 +54,13 @@ xbStat = myXBee.read();
 #####Description
 Reads the XBee until a certain status is returned, or a certain amount of time elapses, whichever occurs first.
 #####Syntax
-`myXBee.waitFor(xbeeReadStatus_t stat, uint32_t timeout);`
+`myXBee.waitFor(stat, timeout);`
 #####Parameters
 **stat:** The status to wait for. See the `xbeeReadStatus_t` enumeration in the gsXBee.h file *(xbeeReadStatus_t)*.
 
 **timeout:** Time to wait in milliseconds. *(unsigned long)*.
 #####Returns
-Type of traffic received, or various error indications. See the `xbeeReadStatus_t` enumeration in the gsXBee.h file *(xbeeReadStatus_t)*.
+Type of traffic received, or various error indications. See the `xbeeReadStatus_t` enumeration in the [gsXBee.h file](https://github.com/JChristensen/gsXBee/blob/master/gsXBee.h) *(xbeeReadStatus_t)*.
 #####Example
 ```c++
 gsXBee myXBee;
@@ -69,13 +69,13 @@ xbStat = myXBee.waitFor(TX_ACK, 100);	//wait 100 ms for transmission to be ackno
 ```
 ###sendCommand(uint8_t* cmd)
 #####Description
-Sends an AT command to the local XBee. The response is processed in `read()` or `waitFor()`.
+Sends an AT command to the local XBee. The response is processed by `read()` or `waitFor()`.
 #####Syntax
-`myXBee.sendCommand(uint8_t* cmd);`
+`myXBee.sendCommand(cmd);`
 #####Parameters
 **cmd:** A two-byte array containing the ASCII command characters. _(uint8_t*)_.
 #####Returns
-*None.*
+None.
 #####Example
 ```c++
 gsXBee myXBee;
@@ -86,11 +86,11 @@ myXBee.sendCommand(atCmd);		//request rss for last packet received
 #####Description
 Sends data to a remote node.
 #####Syntax
-`myXBee.send(char* data);`
+`myXBee.send(data);`
 #####Parameters
-**data:** Zero-terminated character array containing the data to be transmitted _(char*)_.
+**data:** Zero-terminated char array containing the data to be transmitted _(char*)_.
 #####Returns
-*None.*
+None.
 #####Example
 ```c++
 gsXBee myXBee;
@@ -101,12 +101,12 @@ myXBee.sendData(someData);
 #####Description
 Resets the microcontroller after a given number of milliseconds. The minimum is 4 seconds (4000 ms). If a number less than 4000 is given, the delay will be approximately 4 seconds.
 #####Syntax
-`myXBee.mcuReset(uint32_t dly);`
+`myXBee.mcuReset(dly);`
 #####Parameters
 **dly:** Delay in milliseconds before reset *(unsigned long)*.
 
 #####Returns
-*None.*
+None.
 #####Example
 ```c++
 gsXBee myXBee;
