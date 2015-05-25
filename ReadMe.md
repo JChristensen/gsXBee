@@ -46,12 +46,6 @@ Initializes the gsXBee library. Verifies serial communication with the XBee, get
 **forceDisassoc:** Optional argument that defaults to *true*. For end devices only, causes the XBee to disassociate during the initialization sequence. Coordinators and routers are not affected *(bool)*.
 #####Returns
 None.
-#####Example
-```c++
-gsXBee myXBee;
-xbeeReadStatus_t xbStat;
-xbStat = myXBee.read();
-```
 ###read(void)
 #####Description
 Checks the XBee for incoming traffic and processes it.
