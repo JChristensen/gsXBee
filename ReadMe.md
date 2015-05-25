@@ -35,6 +35,23 @@ Instantiates a gsXBee object.
 None.
 
 ## Methods ##
+###begin(int32_t baudRate, bool forceDisassoc)
+#####Description
+Initializes the gsXBee library. Verifies serial communication with the XBee, get its Node ID, ensures that it's associated, and optionally forces disassociation for end devices (this causes initialization to take several seconds longer but allows an end device to associate with an optimal parent, e.g. if it was moved). If communication with the XBee fails, the initialization routine waits one minute, then resets the microcontroller.
+#####Syntax
+`myXBee.begin(115200, false);`
+
+**baudRate:** Serial baud rate for XBee communications *(int32_t)*.
+
+**forceDisassoc:** Optional argument that defaults to *true*. For end devices only, causes the XBee to disassociate during the initialization sequence. Coordinators and routers are not affected *(bool)*.
+#####Returns
+None.
+#####Example
+```c++
+gsXBee myXBee;
+xbeeReadStatus_t xbStat;
+xbStat = myXBee.read();
+```
 ###read(void)
 #####Description
 Checks the XBee for incoming traffic and processes it.
