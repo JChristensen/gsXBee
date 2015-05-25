@@ -9,6 +9,9 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 {
 }
 
+//verify communications with the XBee, get its Node ID, ensure that it's associated,
+//optionally force disassociation for end devices (takes several seconds longer but
+//allows an end device to associate with an optimal parent, e.g. if it was moved).
 void gsXBee::begin(int32_t baudRate, bool forceDisassoc)
 {
     XBee::begin(baudRate);
@@ -16,11 +19,11 @@ void gsXBee::begin(int32_t baudRate, bool forceDisassoc)
 
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
-    const uint32_t ASSOC_TIMEOUT(60000);     //milliseconds to wait for XBee to associate
-    const uint32_t RESET_DELAY(60000);       //milliseconds to wait before resetting MCU
-    enum INIT_STATES_t        //state machine states
+    const uint32_t ASSOC_TIMEOUT(60000);    //milliseconds to wait for XBee to associate
+    const uint32_t RESET_DELAY(60000);      //milliseconds to wait before resetting MCU
+    enum INIT_STATES_t                      //state machine states
     {
-        GET_NI, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, MCU_RESET
+        GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, MCU_RESET
     };
     INIT_STATES_t INIT_STATE = GET_NI;
 
@@ -42,8 +45,24 @@ void gsXBee::begin(int32_t baudRate, bool forceDisassoc)
                 }
                 else
                 {
-                    INIT_STATE = CHECK_ASSOC;
+                    INIT_STATE = GET_VR;
                 }
+            }
+            break;
+
+        case GET_VR:
+            {
+                uint8_t cmd[] = "VR";           //ask for firmware version
+                sendCommand(cmd);
+            }
+            if ( waitFor(VR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
+            {
+                INIT_STATE = MCU_RESET;
+                Serial << millis() << F(" XBee VR fail\n");
+            }
+            else
+            {
+                INIT_STATE = CHECK_ASSOC;
             }
             break;
 
@@ -59,10 +78,17 @@ void gsXBee::begin(int32_t baudRate, bool forceDisassoc)
             }
             else if ( assocStatus == 0 )        //zero means associated
             {
-                uint8_t cmd[] = "DA";           //force disassociation
-                sendCommand(cmd);
-                stateTimer = millis();
-                INIT_STATE = WAIT_DISASSOC;
+                if (forceDisassoc && firmwareVersion & 0x0800)  //end devices only
+                {
+                    uint8_t cmd[] = "DA";       //force disassociation
+                    sendCommand(cmd);
+                    stateTimer = millis();
+                    INIT_STATE = WAIT_DISASSOC;
+                }
+                else
+                {
+                    INIT_STATE = INIT_COMPLETE;
+                }
             }
             else
             {
@@ -164,14 +190,14 @@ xbeeReadStatus_t gsXBee::read(void)
                     p = atResp.getValue();
                     switch ( cmd )
                     {
-                    case 0x4149:                        //AI command
+                    case 0x4149:                        //AI command (association indication)
                         assocStatus = *p;
                         return AI_CMD_RESPONSE;
                         break;
-                    case 0x4441:                        //DA command
+                    case 0x4441:                        //DA command (force disassociation)
                         return DA_CMD_RESPONSE;
                         break;
-                    case 0x4E49:                        //NI command
+                    case 0x4E49:                        //NI command (node identifier)
                         {
                             char nodeID[20];
                             char *n = nodeID;
@@ -179,11 +205,14 @@ xbeeReadStatus_t gsXBee::read(void)
                                 *n++ = *p++;
                             }
                             *n++ = 0;                   //string terminator
-                            Serial << ms << F(" XB NI=") << nodeID << endl;
                             parseNodeID(nodeID);
                             return NI_CMD_RESPONSE;
                             break;
                         }
+                    case 0x5652:                        //VR command (firmware version)
+                        firmwareVersion = ( *p << 8 ) + *(p + 1);
+                        return VR_CMD_RESPONSE;
+                        break;
                     default:
                         Serial << ms << F(" UNK CMD RESP ") << atCmdRecd << endl;
                         return COMMAND_RESPONSE;
@@ -424,4 +453,3 @@ void gsXBee::mcuReset(uint32_t dly)
         delay(1000);
     }
 }
-

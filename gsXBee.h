@@ -43,7 +43,7 @@ const uint8_t PAYLOAD_LEN(80);
 enum xbeeReadStatus_t
 {
     NO_TRAFFIC, READ_TIMEOUT, TX_ACK, TX_FAIL, COMMAND_RESPONSE, AI_CMD_RESPONSE, DA_CMD_RESPONSE,
-    NI_CMD_RESPONSE, MODEM_STATUS, RX_NO_ACK, RX_DATA, RX_ERROR, RX_UNKNOWN, UNKNOWN_FRAME
+    NI_CMD_RESPONSE, VR_CMD_RESPONSE, MODEM_STATUS, RX_NO_ACK, RX_DATA, RX_ERROR, RX_UNKNOWN, UNKNOWN_FRAME
 };
 
 class gsXBee : public XBee
@@ -68,6 +68,7 @@ public:
     char packetType;            //D = data packet
     XBeeAddress64 sendingAddr;  //address of node that sent packet
     XBeeAddress64 destAddr;     //destination address
+    uint16_t firmwareVersion;
     char atCmdRecd[4];          //the AT command responded to in an AT Command Response packet (two chars with zero terminator)
     char sendingCompID[10];     //sender's component ID from received packet
     char payload[PAYLOAD_LEN];  //XBee payload
