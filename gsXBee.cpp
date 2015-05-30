@@ -318,7 +318,7 @@ void gsXBee::sendCommand(uint8_t* cmd)
 //Build & send an XBee data packet.
 //The data packet is defined as follows:
 //Byte  0:       SOH character (Start of header, 0x01)
-//Byte  1:       Packet type, D=data, S=time sync request
+//Byte  1:       Packet type, D=data
 //Bytes 2-m:     (m <= 9) GroveStreams component ID, 1-8 characters.
 //Byte  m+1:     STX character (0x02), delimiter between header and data.
 //Bytes m+2-n:   (D packet) Data to be sent to GroveStreams, in
