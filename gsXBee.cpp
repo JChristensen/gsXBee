@@ -12,9 +12,9 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 //verify communications with the XBee, get its Node ID, ensure that it's associated,
 //optionally force disassociation for end devices (takes several seconds longer but
 //allows an end device to associate with an optimal parent, e.g. if it was moved).
-void gsXBee::begin(int32_t baudRate, bool forceDisassoc)
+void gsXBee::begin(Stream &serial, bool forceDisassoc)
 {
-    XBee::begin(baudRate);
+    XBee::begin(serial);
     delay(500);                 //XBee needs initialization time after POR before it will communicate
 
     //initialization state machine establishes communication with the XBee and
