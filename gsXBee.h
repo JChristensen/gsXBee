@@ -50,7 +50,7 @@ class gsXBee : public XBee
 {
 public:
     gsXBee(void);
-    void begin(Stream &serial, bool forceDisassoc = true);
+    bool begin(Stream &serial, bool forceDisassoc = true);
     xbeeReadStatus_t waitFor(xbeeReadStatus_t stat, uint32_t timeout);
     xbeeReadStatus_t read(void);
     void sendCommand(uint8_t* cmd);

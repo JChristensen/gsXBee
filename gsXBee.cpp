@@ -12,10 +12,12 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 //verify communications with the XBee, get its Node ID, ensure that it's associated,
 //optionally force disassociation for end devices (takes several seconds longer but
 //allows an end device to associate with an optimal parent, e.g. if it was moved).
-void gsXBee::begin(Stream &serial, bool forceDisassoc)
+//returns true if initialization succeeded. if initialization failed, resets the MCU
+//after a wait, or for end devices only, returns false.
+bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 {
     XBee::begin(serial);
-    delay(500);                 //XBee needs initialization time after POR before it will communicate
+    delay(1000);                            //XBee needs initialization time after POR before it will communicate
 
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
@@ -23,11 +25,11 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
     const uint32_t RESET_DELAY(60000);      //milliseconds to wait before resetting MCU
     enum INIT_STATES_t                      //state machine states
     {
-        GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, MCU_RESET
+        GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, INIT_FAIL
     };
     INIT_STATES_t INIT_STATE = GET_NI;
 
-    while ( INIT_STATE != INIT_COMPLETE )
+    while ( 1 )
     {
         uint32_t stateTimer;
 
@@ -40,7 +42,7 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
                 sendCommand(cmd);
                 if ( waitFor(NI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
                 {
-                    INIT_STATE = MCU_RESET;
+                    INIT_STATE = INIT_FAIL;
                     Serial << millis() << F(" The XBee did not respond\n");
                 }
                 else
@@ -57,7 +59,7 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
             }
             if ( waitFor(VR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
             {
-                INIT_STATE = MCU_RESET;
+                INIT_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee VR fail\n");
             }
             else
@@ -73,7 +75,7 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
             }
             if ( waitFor(AI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
             {
-                INIT_STATE = MCU_RESET;
+                INIT_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee AI fail\n");
             }
             else if ( assocStatus == 0 )        //zero means associated
@@ -104,7 +106,7 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
                 stateTimer = millis();
             }
             else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
-                INIT_STATE = MCU_RESET;
+                INIT_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee DA timeout\n");
             }
             break;
@@ -117,14 +119,17 @@ void gsXBee::begin(Stream &serial, bool forceDisassoc)
                 stateTimer = millis();
             }
             else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
-                INIT_STATE = MCU_RESET;
+                INIT_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee associate fail\n");
             }
             break;
 
-        case MCU_RESET:    //wait a minute, then reset the MCU
-            Serial.flush();
-            mcuReset(RESET_DELAY);
+        case INIT_COMPLETE:
+            return true;
+            break;
+
+        case INIT_FAIL:
+            return false;
             break;
         }
     }
