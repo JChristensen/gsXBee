@@ -335,9 +335,6 @@ void gsXBee::sendCommand(uint8_t* cmd)
 //file. Note there is an upper limit, see the XBee ATNP command.
 void gsXBee::sendData(char* data)
 {
-    const char SOH = 0x01;                   //start of header
-    const char STX = 0x02;                   //start of text
-
     char *p = payload;
     *p++ = SOH;
     *p++ = 'D';                              //data packet
@@ -361,12 +358,12 @@ bool gsXBee::parsePacket(void)
 {
     uint8_t *d = zbRX.getData();
     uint8_t len = zbRX.getDataLength();
-    if ( *d++ != 0x01 ) return false;          //check for SOH start character
+    if ( *d++ != SOH ) return false;          //check for SOH start character
     packetType = *d++;                         //save the packet type
     char *c = sendingCompID;                   //now parse the component ID
     uint8_t nChar = 0;
     char ch;
-    while ( (ch = *d++) != 0x02 )              //look for STX
+    while ( (ch = *d++) != STX )              //look for STX
     {
         if ( ++nChar > 8 ) return false;       //missing
         *c++ = ch;

@@ -40,6 +40,8 @@
 #include <XBee.h>                   //http://github.com/andrewrapp/xbee-arduino
 
 const uint8_t PAYLOAD_LEN(80);
+const char SOH = 0x01;                   //start of header
+const char STX = 0x02;                   //start of text
 enum xbeeReadStatus_t
 {
     NO_TRAFFIC, READ_TIMEOUT, TX_ACK, TX_FAIL, COMMAND_RESPONSE, AI_CMD_RESPONSE, DA_CMD_RESPONSE,
