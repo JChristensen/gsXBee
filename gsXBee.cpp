@@ -373,7 +373,7 @@ bool gsXBee::parsePacket(void)
     }
     *c++ = 0;                                  //string terminator
     char *p = payload;                         //now copy the rest of the payload data
-    for (uint8_t i = nChar+2; i < len; ++i )
+    for (uint8_t i = nChar + 3; i < len; ++i ) //SOH + STX + packet type = 3 chars
     {
         *p++ = *d++;
     }
@@ -391,6 +391,7 @@ void gsXBee::getRSS(void)
     send(atCmdReq);
     if (readPacket(10))
     {
+        Serial << endl;
         if (getResponse().getApiId() == AT_COMMAND_RESPONSE)
         {
             AtCommandResponse atResp;
