@@ -5,7 +5,8 @@
 
 #include <gsXBee.h>
 
-gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
+//constructor. coordinator is default destination.
+gsXBee::gsXBee(void) : destAddr(0x0, 0x0), timeSyncCallback(NULL)
 {
     tsCompID[0] = 0;
 }
@@ -18,7 +19,7 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 {
     XBee::begin(serial);
-    delay(1000);                            //XBee needs initialization time after POR before it will communicate
+    delay(1000);            //XBee needs some initialization time after POR before it will communicate
 
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
@@ -280,11 +281,11 @@ xbeeReadStatus_t gsXBee::read(void)
                     case 'S':                              //time sync packet
                         if ( isTimeServer )                //queue the request
                         {
-                            if (tsCompID[0] == 0) {                    //can only queue one request, ignore request if already have one queued
-                                strcpy(tsCompID, sendingCompID);       //save the sender's node ID
+                            if (tsCompID[0] == 0) {                 //can only queue one request, ignore if one is already queued
+                                strcpy(tsCompID, sendingCompID);    //save the sender's node ID
                             }
                         }
-                        else                                //call the user's time sync function
+                        else if (timeSyncCallback != NULL)          //call the user's time sync function if they gave one
                         {
                             uint32_t utc = getFromBuffer(payload);
                             timeSyncCallback(utc);
