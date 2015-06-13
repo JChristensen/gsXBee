@@ -7,6 +7,7 @@
 
 gsXBee::gsXBee(void) : destAddr(0x0, 0x0)   //coordinator is default destination
 {
+    tsCompID[0] = 0;
 }
 
 //verify communications with the XBee, get its Node ID, ensure that it's associated,
@@ -275,6 +276,22 @@ xbeeReadStatus_t gsXBee::read(void)
                         getRSS();                          //get the received signal strength
                         return RX_DATA;
                         break;
+
+                    case 'S':                              //time sync packet
+                        if ( isTimeServer )                //queue the request
+                        {
+                            if (tsCompID[0] == 0) {                    //can only queue one request, ignore request if already have one queued
+                                strcpy(tsCompID, sendingCompID);       //save the sender's node ID
+                            }
+                        }
+                        else                                //call the user's time sync function
+                        {
+                            uint32_t utc = getFromBuffer(payload);
+                            timeSyncCallback(utc);
+                        }
+                        return RX_TIMESYNC;
+                        break;
+
                     default:                               //not expecting anything else
                         Serial << endl << ms << F(" XB unknown packet type\n");
                         return RX_UNKNOWN;
@@ -443,6 +460,58 @@ void gsXBee::parseNodeID(char* ni)
     strcpy(compID, ni);        //save the component ID
 }
 
+//ask for the current time, utc is the current time of the requestor (not currently used)
+void gsXBee::requestTimeSync(uint32_t utc)
+{
+    char *p = payload;
+    *p++ = SOH;
+    *p++ = 'S';                              //time sync packet
+    char *c = compID;
+    while ( *p++ = *c++ );                   //copy in component ID
+    *(p - 1) = STX;                          //overlay the string terminator
+    copyToBuffer(p, utc);                    //send our current time
+
+    uint8_t len = strlen(compID) + 7;        //build the tx request
+    zbTX.setAddress64(destAddr);
+    zbTX.setAddress16(0xFFFE);
+    zbTX.setPayload((uint8_t*)payload);
+    zbTX.setPayloadLength(len);
+    send(zbTX);
+    msTX = millis();
+    Serial << endl << msTX << F(" Time sync ") << len << endl;
+}
+
+//respond to a previously queued time sync request
+//utc can be a time_t value (same as uint32_t).
+//should be called immediately after second rollover
+void gsXBee::sendTimeSync(uint32_t utc)
+{
+    if (tsCompID[0] != 0) {                      //is there a request queued?
+        char *p = payload;
+        *p++ = SOH;
+        *p++ = 'S';                              //time sync packet
+        char *c = compID;
+        while ( *p++ = *c++ );                   //copy in component ID
+        *(p - 1) = STX;                          //overlay the string terminator
+        copyToBuffer(p, utc);                    //send current UTC
+
+        uint8_t len = strlen(compID) + 7;        //build the tx request
+        zbTX.setAddress64(sendingAddr);
+        zbTX.setAddress16(0xFFFE);
+        zbTX.setPayload((uint8_t*)payload);
+        zbTX.setPayloadLength(len);
+        send(zbTX);
+        msTX = millis();
+        Serial << endl << millis() << F(" Time sync ") << tsCompID << ' ' << len << endl;
+        tsCompID[0] = 0;                         //request was serviced, none queued
+    }
+}
+
+void gsXBee::setSyncCallback( void (*fcn)(uint32_t t) )
+{
+    timeSyncCallback = fcn;
+}
+
 //reset the mcu
 void gsXBee::mcuReset(uint32_t dly)
 {
@@ -455,4 +524,29 @@ void gsXBee::mcuReset(uint32_t dly)
         Serial << ' ' << countdown--;
         delay(1000);
     }
+}
+
+//copy a four-byte integer to the designated offset in the buffer
+void gsXBee::copyToBuffer(char* dest, uint32_t source)
+{
+    charInt_t data;
+
+    data.i = source;
+    dest[0] = data.c[0];
+    dest[1] = data.c[1];
+    dest[2] = data.c[2];
+    dest[3] = data.c[3];
+}
+
+//get a four-byte integer from the buffer starting at the designated offset
+uint32_t gsXBee::getFromBuffer(char* source)
+{
+    charInt_t data;
+
+    data.c[0] = source[0];
+    data.c[1] = source[1];
+    data.c[2] = source[2];
+    data.c[3] = source[3];
+
+    return data.i;
 }
