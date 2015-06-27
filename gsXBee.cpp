@@ -281,7 +281,8 @@ xbeeReadStatus_t gsXBee::read(void)
                     case 'S':                              //time sync packet
                         if ( isTimeServer )                //queue the request
                         {
-                            if (tsCompID[0] == 0) {                 //can only queue one request, ignore if one is already queued
+                            if (tsCompID[0] == 0)                   //can only queue one request, ignore if one is already queued
+                            {
                                 strcpy(tsCompID, sendingCompID);    //save the sender's node ID
                             }
                         }
