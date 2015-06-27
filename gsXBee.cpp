@@ -14,8 +14,7 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0), timeSyncCallback(NULL)
 //verify communications with the XBee, get its Node ID, ensure that it's associated,
 //optionally force disassociation for end devices (takes several seconds longer but
 //allows an end device to associate with an optimal parent, e.g. if it was moved).
-//returns true if initialization succeeded. if initialization failed, resets the MCU
-//after a wait, or for end devices only, returns false.
+//returns true if initialization succeeded, else false.
 bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 {
     XBee::begin(serial);
