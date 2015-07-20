@@ -394,7 +394,7 @@ bool gsXBee::parsePacket(void)
     }
     *p++ = 0;                                  //string terminator
     sendingAddr = zbRX.getRemoteAddress64();   //save the sender's address
-    Serial << millis() << F(" XB RX ") << sendingCompID << ' ' << len << endl;
+    Serial << millis() << F(" XB RX ") << sendingCompID << ' ' << len << '/' << payload << '/' << endl;
     return true;
 }
 
