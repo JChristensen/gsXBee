@@ -40,12 +40,12 @@
 #define _GSXBEE_H
 #include <Arduino.h>
 #include <avr/wdt.h>
-#include <Streaming.h>              //http://arduiniana.org/libraries/streaming/
-#include <XBee.h>                   //http://github.com/andrewrapp/xbee-arduino
+#include <Streaming.h>                                      //http://arduiniana.org/libraries/streaming/
+#include <XBee.h>                                           //http://github.com/andrewrapp/xbee-arduino
 
-const uint8_t PAYLOAD_LEN(84);      //maximum payload length for XBee ZB modules is 84 bytes
-const char SOH = 0x01;              //start of header
-const char STX = 0x02;              //start of text
+const uint8_t PAYLOAD_LEN(84);                              //maximum payload length for XBee ZB modules is 84 bytes
+const char SOH = 0x01;                                      //start of header
+const char STX = 0x02;                                      //start of text
 enum xbeeReadStatus_t
 {
     NO_TRAFFIC, READ_TIMEOUT, TX_ACK, TX_FAIL, COMMAND_RESPONSE, AI_CMD_RESPONSE, DA_CMD_RESPONSE,
@@ -70,7 +70,7 @@ public:
     void sendData(char* data);
     void requestTimeSync(uint32_t utc);
     void sendTimeSync(uint32_t utc);
-    void setSyncCallback( void (*fcn)(uint32_t) );  //set the time sync callback function
+    void setSyncCallback( void (*fcn)(uint32_t) );          //set the time sync callback function
     void mcuReset(uint32_t dly = 0 );
 
     char compID[10];            //our component ID

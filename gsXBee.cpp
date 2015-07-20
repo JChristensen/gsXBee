@@ -22,9 +22,9 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
-    const uint32_t ASSOC_TIMEOUT(60000);    //milliseconds to wait for XBee to associate
-    const uint32_t RESET_DELAY(60000);      //milliseconds to wait before resetting MCU
-    enum INIT_STATES_t                      //state machine states
+    const uint32_t ASSOC_TIMEOUT(60000);                    //milliseconds to wait for XBee to associate
+    const uint32_t RESET_DELAY(60000);                      //milliseconds to wait before resetting MCU
+    enum INIT_STATES_t                                      //state machine states
     {
         GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, INIT_FAIL
     };
@@ -37,9 +37,9 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
         switch (INIT_STATE)
         {
         case GET_NI:
-            while ( read() != NO_TRAFFIC );     //handle any incoming traffic
+            while ( read() != NO_TRAFFIC );                 //handle any incoming traffic
             {
-                uint8_t cmd[] = "NI";           //ask for the node ID
+                uint8_t cmd[] = "NI";                       //ask for the node ID
                 sendCommand(cmd);
                 if ( waitFor(NI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
                 {
@@ -55,7 +55,7 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 
         case GET_VR:
             {
-                uint8_t cmd[] = "VR";           //ask for firmware version
+                uint8_t cmd[] = "VR";                       //ask for firmware version
                 sendCommand(cmd);
             }
             if ( waitFor(VR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
@@ -71,7 +71,7 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
 
         case CHECK_ASSOC:
             {
-                uint8_t cmd[] = "AI";           //ask for association indicator
+                uint8_t cmd[] = "AI";                       //ask for association indicator
                 sendCommand(cmd);
             }
             if ( waitFor(AI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
@@ -79,11 +79,11 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
                 INIT_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee AI fail\n");
             }
-            else if ( assocStatus == 0 )        //zero means associated
+            else if ( assocStatus == 0 )                    //zero means associated
             {
                 if (forceDisassoc && firmwareVersion & 0x0800)  //end devices only
                 {
-                    uint8_t cmd[] = "DA";       //force disassociation
+                    uint8_t cmd[] = "DA";                   //force disassociation
                     sendCommand(cmd);
                     stateTimer = millis();
                     INIT_STATE = WAIT_DISASSOC;
@@ -96,13 +96,13 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
             else
             {
                 stateTimer = millis();
-                INIT_STATE = WAIT_ASSOC;        //already disassociated, just wait for associate
+                INIT_STATE = WAIT_ASSOC;                    //already disassociated, just wait for associate
             }
             break;
 
-        case WAIT_DISASSOC:                     //wait for the XBee to disassociate
+        case WAIT_DISASSOC:                                 //wait for the XBee to disassociate
             read();
-            if (assocStatus != 0) {             //zero means associated
+            if (assocStatus != 0) {                         //zero means associated
                 INIT_STATE = WAIT_ASSOC;
                 stateTimer = millis();
             }
@@ -112,11 +112,11 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
             }
             break;
 
-        case WAIT_ASSOC:                        //wait for the XBee to associate
+        case WAIT_ASSOC:                                    //wait for the XBee to associate
             read();
-            if ( assocStatus == 0 ) {           //zero means associated
+            if ( assocStatus == 0 ) {                       //zero means associated
                 INIT_STATE = INIT_COMPLETE;
-                disassocReset = true;           //any further disassociations are unexpected
+                disassocReset = true;                       //any further disassociations are unexpected
                 stateTimer = millis();
             }
             else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
@@ -156,9 +156,9 @@ xbeeReadStatus_t gsXBee::read(void)
     {
         uint32_t ms = millis();
 
-        switch (getResponse().getApiId())             //what kind of packet did we get?
+        switch (getResponse().getApiId())                   //what kind of packet did we get?
         {
-        case ZB_TX_STATUS_RESPONSE:                   //transmit status for packets we've sent
+        case ZB_TX_STATUS_RESPONSE:                         //transmit status for packets we've sent
             {
                 ZBTxStatusResponse zbStat;
                 getResponse().getZBTxStatusResponse(zbStat);
@@ -181,13 +181,13 @@ xbeeReadStatus_t gsXBee::read(void)
             }
             break;
 
-        case AT_COMMAND_RESPONSE:                          //response to an AT command
+        case AT_COMMAND_RESPONSE:                           //response to an AT command
             {
                 AtCommandResponse atResp;
                 getResponse().getAtCommandResponse(atResp);
                 if (atResp.isOk())
                 {
-                    uint8_t* p = atResp.getCommand();          //get the command
+                    uint8_t* p = atResp.getCommand();       //get the command
                     atCmdRecd[0] = *p++;
                     atCmdRecd[1] = *p++;
                     atCmdRecd[2] = 0;
@@ -196,26 +196,26 @@ xbeeReadStatus_t gsXBee::read(void)
                     p = atResp.getValue();
                     switch ( cmd )
                     {
-                    case 0x4149:                        //AI command (association indication)
+                    case 0x4149:                            //AI command (association indication)
                         assocStatus = *p;
                         return AI_CMD_RESPONSE;
                         break;
-                    case 0x4441:                        //DA command (force disassociation)
+                    case 0x4441:                            //DA command (force disassociation)
                         return DA_CMD_RESPONSE;
                         break;
-                    case 0x4E49:                        //NI command (node identifier)
+                    case 0x4E49:                            //NI command (node identifier)
                         {
                             char nodeID[20];
                             char *n = nodeID;
                             for (uint8_t i=0; i<respLen; ++i) {
                                 *n++ = *p++;
                             }
-                            *n++ = 0;                   //string terminator
+                            *n++ = 0;                       //string terminator
                             parseNodeID(nodeID);
                             return NI_CMD_RESPONSE;
                             break;
                         }
-                    case 0x5652:                        //VR command (firmware version)
+                    case 0x5652:                            //VR command (firmware version)
                         firmwareVersion = ( *p << 8 ) + *(p + 1);
                         return VR_CMD_RESPONSE;
                         break;
@@ -233,7 +233,7 @@ xbeeReadStatus_t gsXBee::read(void)
             }
             break;
 
-        case MODEM_STATUS_RESPONSE:                   //XBee administrative messages
+        case MODEM_STATUS_RESPONSE:                         //XBee administrative messages
             {
                 ModemStatusResponse zbMSR;
                 getResponse().getModemStatusResponse(zbMSR);
@@ -251,7 +251,7 @@ xbeeReadStatus_t gsXBee::read(void)
                 case DISASSOCIATED:
                     Serial << F("XB DISASC\n");
                     assocStatus = 0xFF;
-                    if (disassocReset) mcuReset();         //restart and hope to reassociate
+                    if (disassocReset) mcuReset();          //restart and hope to reassociate
                     break;
                 default:
                     Serial << F("XB MDM STAT 0x") << _HEX(msrResponse) << endl;
@@ -261,31 +261,31 @@ xbeeReadStatus_t gsXBee::read(void)
             return MODEM_STATUS;
             break;
 
-        case ZB_RX_RESPONSE:                               //rx data packet
-            getResponse().getZBRxResponse(zbRX);           //get the received data
-            switch (zbRX.getOption() & 0x01)               //check ack bit only
+        case ZB_RX_RESPONSE:                                //rx data packet
+            getResponse().getZBRxResponse(zbRX);            //get the received data
+            switch (zbRX.getOption() & 0x01)                //check ack bit only
             {
             case ZB_PACKET_ACKNOWLEDGED:
                 //process the received data
                 Serial << ms << F(" XB RX/ACK\n");
                 if ( parsePacket() )
                 {
-                    switch (packetType)                    //what type of packet
+                    switch (packetType)                     //what type of packet
                     {
-                    case 'D':                              //data headed for the web
-                        getRSS();                          //get the received signal strength
+                    case 'D':                               //data headed for the web
+                        getRSS();                           //get the received signal strength
                         return RX_DATA;
                         break;
 
-                    case 'S':                              //time sync packet
-                        if ( isTimeServer )                //queue the request
+                    case 'S':                               //time sync packet
+                        if ( isTimeServer )                 //queue the request
                         {
-                            if (tsCompID[0] == 0)                   //can only queue one request, ignore if one is already queued
+                            if (tsCompID[0] == 0)           //can only queue one request, ignore if one is already queued
                             {
                                 strcpy(tsCompID, sendingCompID);    //save the sender's node ID
                             }
                         }
-                        else if (timeSyncCallback != NULL)          //call the user's time sync function if they gave one
+                        else if (timeSyncCallback != NULL)  //call the user's time sync function if they gave one
                         {
                             uint32_t utc = getFromBuffer(payload);
                             timeSyncCallback(utc);
@@ -293,7 +293,7 @@ xbeeReadStatus_t gsXBee::read(void)
                         return RX_TIMESYNC;
                         break;
 
-                    default:                               //not expecting anything else
+                    default:                                //not expecting anything else
                         Serial << endl << ms << F(" XB unknown packet type\n");
                         return RX_UNKNOWN;
                         break;
@@ -311,14 +311,14 @@ xbeeReadStatus_t gsXBee::read(void)
                 break;
 
             default:
-                Serial << F("XB RX no ACK\n");             //packet received and not ACKed
+                Serial << F("XB RX no ACK\n");              //packet received and not ACKed
                 return RX_NO_ACK;
                 break;
             }
             break;
 
-        default:                                           //something else we were not expecting
-            Serial << F("XB UNEXP TYPE\n");                //unexpected frame type
+        default:                                            //something else we were not expecting
+            Serial << F("XB UNEXP TYPE\n");                 //unexpected frame type
             return UNKNOWN_FRAME;
             break;
         }
@@ -355,13 +355,13 @@ void gsXBee::sendData(char* data)
 {
     char *p = payload;
     *p++ = SOH;
-    *p++ = 'D';                              //data packet
+    *p++ = 'D';                                             //data packet
     char *c = compID;
-    while ( (*p++ = *c++) );                 //copy in component ID
-    *(p - 1) = STX;                          //overlay the string terminator
-    strcpy(p, data);                         //copy in the data
+    while ( (*p++ = *c++) );                                //copy in component ID
+    *(p - 1) = STX;                                         //overlay the string terminator
+    strcpy(p, data);                                        //copy in the data
     uint8_t len = strlen(payload);
-    zbTX.setAddress64(destAddr);             //build the tx request packet
+    zbTX.setAddress64(destAddr);                            //build the tx request packet
     zbTX.setAddress16(0xFFFE);
     zbTX.setPayload( (uint8_t*)payload );
     zbTX.setPayloadLength(len);
@@ -376,24 +376,24 @@ bool gsXBee::parsePacket(void)
 {
     uint8_t *d = zbRX.getData();
     uint8_t len = zbRX.getDataLength();
-    if ( *d++ != SOH ) return false;          //check for SOH start character
-    packetType = *d++;                         //save the packet type
-    char *c = sendingCompID;                   //now parse the component ID
+    if ( *d++ != SOH ) return false;                        //check for SOH start character
+    packetType = *d++;                                      //save the packet type
+    char *c = sendingCompID;                                //now parse the component ID
     uint8_t nChar = 0;
     char ch;
-    while ( (ch = *d++) != STX )              //look for STX
+    while ( (ch = *d++) != STX )                            //look for STX
     {
-        if ( ++nChar > 8 ) return false;       //missing
+        if ( ++nChar > 8 ) return false;                    //missing
         *c++ = ch;
     }
-    *c++ = 0;                                  //string terminator
-    char *p = payload;                         //now copy the rest of the payload data
-    for (uint8_t i = nChar + 3; i < len; ++i ) //SOH + STX + packet type = 3 chars
+    *c++ = 0;                                               //string terminator
+    char *p = payload;                                      //now copy the rest of the payload data
+    for (uint8_t i = nChar + 3; i < len; ++i )              //SOH + STX + packet type = 3 chars
     {
         *p++ = *d++;
     }
-    *p++ = 0;                                  //string terminator
-    sendingAddr = zbRX.getRemoteAddress64();   //save the sender's address
+    *p++ = 0;                                               //string terminator
+    sendingAddr = zbRX.getRemoteAddress64();                //save the sender's address
     Serial << millis() << F(" XB RX ") << sendingCompID << ' ' << len << '/' << payload << '/' << endl;
     return true;
 }
@@ -421,22 +421,22 @@ void gsXBee::getRSS(void)
                 }
                 else
                 {
-                    Serial << F("RSS LEN ERR\n");    //unexpected length
+                    Serial << F("RSS LEN ERR\n");           //unexpected length
                 }
             }
             else
             {
-                Serial << F("RSS ERR\n");            //status not ok
+                Serial << F("RSS ERR\n");                   //status not ok
             }
         }
         else
         {
-            Serial << F("RSS UNEXP RESP\n");         //expecting AT_COMMAND_RESPONSE, got something else
+            Serial << F("RSS UNEXP RESP\n");                //expecting AT_COMMAND_RESPONSE, got something else
         }
     }
     else
     {
-        Serial << F("RSS NO RESP\n");                //timed out
+        Serial << F("RSS NO RESP\n");                       //timed out
     }
 }
 
@@ -445,20 +445,20 @@ void gsXBee::getRSS(void)
 //no checking for proper format is done; improper format will cause undefined behavior.
 void gsXBee::parseNodeID(char* ni)
 {
-    char* p = ni;              //copy the pointer to preserve ni pointing at the start of the string
-    p += strlen(p) - 2;        //point at ww
+    char* p = ni;                                           //copy the pointer to preserve ni pointing at the start of the string
+    p += strlen(p) - 2;                                     //point at ww
     txWarmup = atoi(p);
     *p = 0;
-    p -= 2;                    //put in terminator and back up to point at nn
+    p -= 2;                                                 //put in terminator and back up to point at nn
     txOffset = atoi(p);
     *p = 0;
-    p -= 2;                    //mm
+    p -= 2;                                                 //mm
     txInterval = atoi(p);
     *p = 0;
-    p -= 2;                    //ss
+    p -= 2;                                                 //ss
     txSec = atoi(p);
-    *(--p) = 0;                //terminator after component ID
-    strcpy(compID, ni);        //save the component ID
+    *(--p) = 0;                                             //terminator after component ID
+    strcpy(compID, ni);                                     //save the component ID
 }
 
 //ask for the current time, utc is the current time of the requestor (not currently used)
@@ -466,13 +466,13 @@ void gsXBee::requestTimeSync(uint32_t utc)
 {
     char *p = payload;
     *p++ = SOH;
-    *p++ = 'S';                              //time sync packet
+    *p++ = 'S';                                             //time sync packet
     char *c = compID;
-    while ( *p++ = *c++ );                   //copy in component ID
-    *(p - 1) = STX;                          //overlay the string terminator
-    copyToBuffer(p, utc);                    //send our current time
+    while ( *p++ = *c++ );                                  //copy in component ID
+    *(p - 1) = STX;                                         //overlay the string terminator
+    copyToBuffer(p, utc);                                   //send our current time
 
-    uint8_t len = strlen(compID) + 7;        //build the tx request
+    uint8_t len = strlen(compID) + 7;                       //build the tx request
     zbTX.setAddress64(destAddr);
     zbTX.setAddress16(0xFFFE);
     zbTX.setPayload((uint8_t*)payload);
@@ -487,16 +487,16 @@ void gsXBee::requestTimeSync(uint32_t utc)
 //should be called immediately after second rollover
 void gsXBee::sendTimeSync(uint32_t utc)
 {
-    if (tsCompID[0] != 0) {                      //is there a request queued?
+    if (tsCompID[0] != 0) {                                 //is there a request queued?
         char *p = payload;
         *p++ = SOH;
-        *p++ = 'S';                              //time sync packet
+        *p++ = 'S';                                         //time sync packet
         char *c = compID;
-        while ( *p++ = *c++ );                   //copy in component ID
-        *(p - 1) = STX;                          //overlay the string terminator
-        copyToBuffer(p, utc);                    //send current UTC
+        while ( *p++ = *c++ );                              //copy in component ID
+        *(p - 1) = STX;                                     //overlay the string terminator
+        copyToBuffer(p, utc);                               //send current UTC
 
-        uint8_t len = strlen(compID) + 7;        //build the tx request
+        uint8_t len = strlen(compID) + 7;                   //build the tx request
         zbTX.setAddress64(sendingAddr);
         zbTX.setAddress16(0xFFFE);
         zbTX.setPayload((uint8_t*)payload);
@@ -504,7 +504,7 @@ void gsXBee::sendTimeSync(uint32_t utc)
         send(zbTX);
         msTX = millis();
         Serial << endl << millis() << F(" Time sync ") << tsCompID << ' ' << len << endl;
-        tsCompID[0] = 0;                         //request was serviced, none queued
+        tsCompID[0] = 0;                                    //request was serviced, none queued
     }
 }
 
