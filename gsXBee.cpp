@@ -23,7 +23,6 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
     const uint32_t ASSOC_TIMEOUT(60000);                    //milliseconds to wait for XBee to associate
-    const uint32_t RESET_DELAY(60000);                      //milliseconds to wait before resetting MCU
     enum INIT_STATES_t                                      //state machine states
     {
         GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, INIT_FAIL
@@ -198,6 +197,7 @@ xbeeReadStatus_t gsXBee::read(void)
                     {
                     case 0x4149:                            //AI command (association indication)
                         assocStatus = *p;
+Serial << millis() << F(" AI=0x") << _HEX(assocStatus) << endl;
                         return AI_CMD_RESPONSE;
                         break;
                     case 0x4441:                            //DA command (force disassociation)
@@ -394,7 +394,7 @@ bool gsXBee::parsePacket(void)
     }
     *p++ = 0;                                               //string terminator
     sendingAddr = zbRX.getRemoteAddress64();                //save the sender's address
-    Serial << millis() << F(" XB RX ") << sendingCompID << ' ' << len << '/' << payload << '/' << endl;
+    Serial << millis() << F(" XB RX ") << sendingCompID << ' ' << len << F("b\n");
     return true;
 }
 
@@ -468,7 +468,7 @@ void gsXBee::requestTimeSync(uint32_t utc)
     *p++ = SOH;
     *p++ = 'S';                                             //time sync packet
     char *c = compID;
-    while ( *p++ = *c++ );                                  //copy in component ID
+    while ( (*p++ = *c++) );                                //copy in component ID
     *(p - 1) = STX;                                         //overlay the string terminator
     copyToBuffer(p, utc);                                   //send our current time
 
@@ -492,7 +492,7 @@ void gsXBee::sendTimeSync(uint32_t utc)
         *p++ = SOH;
         *p++ = 'S';                                         //time sync packet
         char *c = compID;
-        while ( *p++ = *c++ );                              //copy in component ID
+        while ( (*p++ = *c++) );                            //copy in component ID
         *(p - 1) = STX;                                     //overlay the string terminator
         copyToBuffer(p, utc);                               //send current UTC
 
