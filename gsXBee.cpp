@@ -11,43 +11,93 @@ gsXBee::gsXBee(void) : destAddr(0x0, 0x0), timeSyncCallback(NULL)
     tsCompID[0] = 0;
 }
 
-//verify communications with the XBee, get its Node ID, ensure that it's associated,
-//optionally force disassociation for end devices (takes several seconds longer but
-//allows an end device to associate with an optimal parent, e.g. if it was moved).
-//returns true if initialization succeeded, else false.
-bool gsXBee::begin(Stream &serial, bool forceDisassoc)
+//optionally reset the XBee. check to see if it's associated, if not, wait.
+//after it's associated, get its Node ID and version information.
+bool gsXBee::begin(Stream &serial, bool resetXBee)
 {
     XBee::begin(serial);
-    delay(1000);            //XBee needs some initialization time after POR before it will communicate
 
     //initialization state machine establishes communication with the XBee and
     //ensures that it is associated.
     const uint32_t ASSOC_TIMEOUT(60000);                    //milliseconds to wait for XBee to associate
-    enum INIT_STATES_t                                      //state machine states
+    enum BEGIN_STATES_t                                     //state machine states
     {
-        GET_NI, GET_VR, CHECK_ASSOC, WAIT_DISASSOC, WAIT_ASSOC, INIT_COMPLETE, INIT_FAIL
+        RESET_XBEE, REQ_AI, WAIT_ASSOC, GET_NI, GET_VR, INIT_COMPLETE, INIT_FAIL
     };
-    INIT_STATES_t INIT_STATE = GET_NI;
+    BEGIN_STATES_t BEGIN_STATE = RESET_XBEE;
 
     while ( 1 )
     {
         uint32_t stateTimer;
 
-        switch (INIT_STATE)
+        switch (BEGIN_STATE)
         {
-        case GET_NI:
+        case RESET_XBEE:
+            delay(1000);                                    //allow some time for the XBee POR
             while ( read() != NO_TRAFFIC );                 //handle any incoming traffic
+            if (resetXBee)
+            {
+                uint8_t cmd[] = "FR";                       //firmware reset
+                sendCommand(cmd);
+                if ( waitFor(FR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
+                {
+                    BEGIN_STATE = INIT_FAIL;
+                    Serial << millis() << F(" The XBee did not respond\n");
+                }
+                else if ( waitFor(MODEM_STATUS, 3000) == READ_TIMEOUT )     //FR takes 2+ seconds, responds with modem status (WDT reset)
+                {
+                    BEGIN_STATE = INIT_FAIL;
+                    Serial << millis() << F(" The XBee did not respond\n");
+                }
+                else
+                {
+                    BEGIN_STATE = REQ_AI;
+                }
+            }
+            else
+            {
+                BEGIN_STATE = REQ_AI;
+            }
+            break;
+            
+        case REQ_AI:                                        //get association indicator
+            {
+                uint8_t cmd[] = "AI";
+                sendCommand(cmd);
+                if ( waitFor(AI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
+                {
+                    BEGIN_STATE = INIT_FAIL;
+                    Serial << millis() << F(" The XBee did not respond\n");
+                }
+                BEGIN_STATE = WAIT_ASSOC;
+                stateTimer = millis();
+            }
+            break;
+            
+        case WAIT_ASSOC:                                    //wait for the XBee to associate
+            read();
+            if ( assocStatus == 0 ) {                       //zero means associated
+                BEGIN_STATE = GET_NI;
+                disassocReset = true;                       //any further disassociations are unexpected
+            }
+            else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
+                BEGIN_STATE = INIT_FAIL;
+                Serial << millis() << F(" XBee associate fail\n");
+            }
+            break;
+            
+        case GET_NI:
             {
                 uint8_t cmd[] = "NI";                       //ask for the node ID
                 sendCommand(cmd);
                 if ( waitFor(NI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
                 {
-                    INIT_STATE = INIT_FAIL;
+                    BEGIN_STATE = INIT_FAIL;
                     Serial << millis() << F(" The XBee did not respond\n");
                 }
                 else
                 {
-                    INIT_STATE = GET_VR;
+                    BEGIN_STATE = GET_VR;
                 }
             }
             break;
@@ -59,68 +109,12 @@ bool gsXBee::begin(Stream &serial, bool forceDisassoc)
             }
             if ( waitFor(VR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
             {
-                INIT_STATE = INIT_FAIL;
+                BEGIN_STATE = INIT_FAIL;
                 Serial << millis() << F(" XBee VR fail\n");
             }
             else
             {
-                INIT_STATE = CHECK_ASSOC;
-            }
-            break;
-
-        case CHECK_ASSOC:
-            {
-                uint8_t cmd[] = "AI";                       //ask for association indicator
-                sendCommand(cmd);
-            }
-            if ( waitFor(AI_CMD_RESPONSE, 1000) == READ_TIMEOUT )
-            {
-                INIT_STATE = INIT_FAIL;
-                Serial << millis() << F(" XBee AI fail\n");
-            }
-            else if ( assocStatus == 0 )                    //zero means associated
-            {
-                if (forceDisassoc && firmwareVersion & 0x0800)  //end devices only
-                {
-                    uint8_t cmd[] = "DA";                   //force disassociation
-                    sendCommand(cmd);
-                    stateTimer = millis();
-                    INIT_STATE = WAIT_DISASSOC;
-                }
-                else
-                {
-                    INIT_STATE = INIT_COMPLETE;
-                }
-            }
-            else
-            {
-                stateTimer = millis();
-                INIT_STATE = WAIT_ASSOC;                    //already disassociated, just wait for associate
-            }
-            break;
-
-        case WAIT_DISASSOC:                                 //wait for the XBee to disassociate
-            read();
-            if (assocStatus != 0) {                         //zero means associated
-                INIT_STATE = WAIT_ASSOC;
-                stateTimer = millis();
-            }
-            else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
-                INIT_STATE = INIT_FAIL;
-                Serial << millis() << F(" XBee DA timeout\n");
-            }
-            break;
-
-        case WAIT_ASSOC:                                    //wait for the XBee to associate
-            read();
-            if ( assocStatus == 0 ) {                       //zero means associated
-                INIT_STATE = INIT_COMPLETE;
-                disassocReset = true;                       //any further disassociations are unexpected
-                stateTimer = millis();
-            }
-            else if (millis() - stateTimer >= ASSOC_TIMEOUT) {
-                INIT_STATE = INIT_FAIL;
-                Serial << millis() << F(" XBee associate fail\n");
+                BEGIN_STATE = INIT_COMPLETE;
             }
             break;
 
@@ -202,6 +196,9 @@ Serial << millis() << F(" AI=0x") << _HEX(assocStatus) << endl;
                         break;
                     case 0x4441:                            //DA command (force disassociation)
                         return DA_CMD_RESPONSE;
+                        break;
+                    case 0x4652:                            //FR command (firmware reset)
+                        return FR_CMD_RESPONSE;
                         break;
                     case 0x4E49:                            //NI command (node identifier)
                         {
@@ -338,7 +335,7 @@ void gsXBee::sendCommand(uint8_t* cmd)
     Serial << endl << millis() << F(" XB CMD ") << (char*)cmd << endl;
 }
 
-//Build & send an XBee data packet.
+//Build & send an XBee data packet containing a character string destined for GroveStreams.
 //The data packet is defined as follows:
 //Byte  0:       SOH character (Start of header, 0x01)
 //Byte  1:       Packet type, D=data
@@ -361,6 +358,29 @@ void gsXBee::sendData(char* data)
     *(p - 1) = STX;                                         //overlay the string terminator
     strcpy(p, data);                                        //copy in the data
     uint8_t len = strlen(payload);
+    zbTX.setAddress64(destAddr);                            //build the tx request packet
+    zbTX.setAddress16(0xFFFE);
+    zbTX.setPayload( (uint8_t*)payload );
+    zbTX.setPayloadLength(len);
+    send(zbTX);
+    msTX = millis();
+    Serial << endl << msTX << F(" XB TX ") << len << endl;
+}
+
+//Build & send an XBee data packet containing binary data, typically to another node.
+void gsXBee::sendData(char packetType, uint8_t* data, uint8_t dataLen)
+{
+    char *p = payload;
+    *p++ = SOH;
+    *p++ = packetType;
+    char *c = compID;
+    while ( (*p++ = *c++) );                                //copy in component ID
+    *(p - 1) = STX;                                         //overlay the string terminator
+    for ( uint8_t i = 0; i < dataLen; ++i )                     //copy in the data
+    {
+        *p++ = *data++;
+    }
+    uint8_t len = dataLen + strlen(compID) + 3;
     zbTX.setAddress64(destAddr);                            //build the tx request packet
     zbTX.setAddress16(0xFFFE);
     zbTX.setPayload( (uint8_t*)payload );

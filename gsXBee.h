@@ -49,8 +49,8 @@ const char STX = 0x02;                                      //start of text
 enum xbeeReadStatus_t
 {
     NO_TRAFFIC, READ_TIMEOUT, TX_ACK, TX_FAIL, COMMAND_RESPONSE, AI_CMD_RESPONSE, DA_CMD_RESPONSE,
-    NI_CMD_RESPONSE, VR_CMD_RESPONSE, MODEM_STATUS, RX_NO_ACK, RX_DATA, RX_TIMESYNC, RX_ERROR,
-    RX_UNKNOWN, UNKNOWN_FRAME
+    FR_CMD_RESPONSE, NI_CMD_RESPONSE, VR_CMD_RESPONSE, MODEM_STATUS, RX_NO_ACK, RX_DATA, RX_TIMESYNC,
+    RX_ERROR, RX_UNKNOWN, UNKNOWN_FRAME
 };
 
 //a union between a 32-bit integer and a 4-byte array
@@ -63,11 +63,12 @@ class gsXBee : public XBee
 {
 public:
     gsXBee(void);
-    bool begin(Stream &serial, bool forceDisassoc = true);
+    bool begin(Stream &serial, bool resetXBee = true);
     xbeeReadStatus_t waitFor(xbeeReadStatus_t stat, uint32_t timeout);
     xbeeReadStatus_t read(void);
     void sendCommand(uint8_t* cmd);
     void sendData(char* data);
+    void sendData(char packetType, uint8_t* data, uint8_t len);
     void requestTimeSync(uint32_t utc);
     void sendTimeSync(uint32_t utc);
     void setSyncCallback( void (*fcn)(uint32_t) );          //set the time sync callback function
@@ -83,6 +84,7 @@ public:
     bool disassocReset;         //flag to reset MCU when XBee disassociation occurs
     bool isTimeServer;          //if server, responds to requests for current time; else uses callback function to set time. 
     char packetType;            //D = data packet, S = time sync packet
+    uint32_t msTX;              //last XBee transmission time from millis()
     XBeeAddress64 sendingAddr;  //address of node that sent packet
     XBeeAddress64 destAddr;     //destination address
     uint16_t firmwareVersion;
@@ -98,7 +100,6 @@ private:
     void copyToBuffer(char* dest, uint32_t source);
     uint32_t getFromBuffer(char* source);
 
-    uint32_t msTX;                          //last XBee transmission time from millis()
     void (*timeSyncCallback)(uint32_t);     //user function called to set the time when a sync packet is received (if not a time server)
     char tsCompID[10];                      //time sync requestor's component ID
     ZBTxStatusResponse zbStat;
