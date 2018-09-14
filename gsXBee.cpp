@@ -149,7 +149,8 @@ xbeeReadStatus_t gsXBee::read(void)
     {
         uint32_t ms = millis();
 
-        switch (getResponse().getApiId())                   //what kind of packet did we get?
+        uint8_t apiID = getResponse().getApiId();
+        switch (apiID)                                      //what kind of packet did we get?
         {
         case ZB_TX_STATUS_RESPONSE:                         //transmit status for packets we've sent
             {
@@ -314,7 +315,7 @@ xbeeReadStatus_t gsXBee::read(void)
             break;
 
         default:                                            //something else we were not expecting
-            Serial << ms << F("\tXB UNEXP TYPE\n");                 //unexpected frame type
+            Serial << ms << F("\tXB UNEXP TYPE 0x") << _HEX(apiID) << endl; //unexpected frame type
             return UNKNOWN_FRAME;
             break;
         }
