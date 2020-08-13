@@ -62,10 +62,10 @@ union charInt_t {
 class gsXBee : public XBee
 {
 public:
-    gsXBee(void);
+    gsXBee();
     bool begin(Stream &serial, bool resetXBee = true);
     xbeeReadStatus_t waitFor(xbeeReadStatus_t stat, uint32_t timeout);
-    xbeeReadStatus_t read(void);
+    xbeeReadStatus_t read();
     void sendCommand(uint8_t* cmd);
     void sendData(char* data);
     void sendData(char packetType, uint8_t* data, uint8_t len);
@@ -93,9 +93,9 @@ public:
     char payload[PAYLOAD_LEN];  //XBee payload
 
 private:
-    bool parsePacket(void);
-    void buildDataPayload(void);
-    void getRSS(void);
+    bool parsePacket();
+    void buildDataPayload();
+    void getRSS();
     void parseNodeID(char* nodeID);
     void copyToBuffer(char* dest, uint32_t source);
     uint32_t getFromBuffer(char* source);

@@ -419,45 +419,37 @@ bool gsXBee::parsePacket(void)
 }
 
 //returns received signal strength value for the last RF data packet.
-void gsXBee::getRSS(void)
+void gsXBee::getRSS()
 {
     uint8_t atCmd[] = { 'D', 'B' };
     AtCommandRequest atCmdReq = AtCommandRequest(atCmd);
     send(atCmdReq);
     uint32_t ms = millis();
-    if (readPacket(10))
-    {
+    if (readPacket(20)) {
         Serial << endl;
-        if (getResponse().getApiId() == AT_COMMAND_RESPONSE)
-        {
+        if (getResponse().getApiId() == AT_COMMAND_RESPONSE) {
             AtCommandResponse atResp;
             getResponse().getAtCommandResponse(atResp);
-            if (atResp.isOk())
-            {
+            if (atResp.isOk()) {
                 uint8_t respLen = atResp.getValueLength();
-                if (respLen == 1)
-                {
+                if (respLen == 1) {
                     uint8_t* resp = atResp.getValue();
                     rss = -resp[0];
                 }
-                else
-                {
-                    Serial << ms << F("\tRSS LEN ERR\n");           //unexpected length
+                else {
+                    Serial << ms << F("\tRSS LEN ERR\n");   //unexpected length
                 }
             }
-            else
-            {
-                Serial << ms << F("\tRSS ERR\n");                   //status not ok
+            else {
+                Serial << ms << F("\tRSS ERR\n");           //status not ok
             }
         }
-        else
-        {
-            Serial << ms << F("\tRSS UNEXP RESP\n");                //expecting AT_COMMAND_RESPONSE, got something else
+        else {
+            Serial << ms << F("\tRSS UNEXP RESP\n");        //expecting AT_COMMAND_RESPONSE, got something else
         }
     }
-    else
-    {
-        Serial << ms << F("\tRSS NO RESP\n");                       //timed out
+    else {
+        Serial << millis() << F("\tRSS NO RESP\n");         //timed out
     }
 }
 
