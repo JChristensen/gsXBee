@@ -6,7 +6,7 @@
 #include <gsXBee.h>
 
 //constructor. coordinator is default destination.
-gsXBee::gsXBee(void) : destAddr(0x0, 0x0), timeSyncCallback(NULL)
+gsXBee::gsXBee() : destAddr(0x0, 0x0), timeSyncCallback(NULL)
 {
     tsCompID[0] = 0;
 }
@@ -39,7 +39,7 @@ bool gsXBee::begin(Stream &serial, bool resetXBee)
             {
                 uint8_t cmd[] = "FR";                       //firmware reset
                 sendCommand(cmd);
-                if ( waitFor(FR_CMD_RESPONSE, 1000) == READ_TIMEOUT )
+                if ( waitFor(FR_CMD_RESPONSE, 2000) == READ_TIMEOUT )
                 {
                     BEGIN_STATE = INIT_FAIL;
                     Serial << millis() << F("\tThe XBee did not respond\n");
@@ -142,7 +142,7 @@ xbeeReadStatus_t gsXBee::waitFor(xbeeReadStatus_t stat, uint32_t timeout)
 }
 
 //check the XBee for incoming traffic and process it
-xbeeReadStatus_t gsXBee::read(void)
+xbeeReadStatus_t gsXBee::read()
 {
     readPacket();
     if ( getResponse().isAvailable() )
@@ -267,17 +267,18 @@ xbeeReadStatus_t gsXBee::read(void)
                 Serial << ms << F("\tXB RX/ACK\n");
                 if ( parsePacket() )
                 {
-                    switch (packetType)                     //what type of packet
+                    switch (packetType)                     // what type of packet
                     {
-                    case 'D':                               //data headed for the web
-                        getRSS();                           //get the received signal strength
+                    case 'D':                               // data headed for the web
+                    case 'M':                               // or mail/mqtt packet
+                        getRSS();                           // get the received signal strength
                         return RX_DATA;
                         break;
 
-                    case 'S':                               //time sync packet
-                        if ( isTimeServer )                 //queue the request
+                    case 'S':                               // time sync packet
+                        if ( isTimeServer )                 // queue the request
                         {
-                            if (tsCompID[0] == 0)           //can only queue one request, ignore if one is already queued
+                            if (tsCompID[0] == 0)           // can only queue one request, ignore if one is already queued
                             {
                                 strcpy(tsCompID, sendingCompID);    //save the sender's node ID
                             }
@@ -338,7 +339,7 @@ void gsXBee::sendCommand(uint8_t* cmd)
 //Build & send an XBee data packet containing a character string destined for GroveStreams.
 //The data packet is defined as follows:
 //Byte  0:       SOH character (Start of header, 0x01)
-//Byte  1:       Packet type, D=data
+//Byte  1:       Packet type, defaults to D=data
 //Bytes 2-m:     (m <= 9) GroveStreams component ID, 1-8 characters.
 //Byte  m+1:     STX character (0x02), delimiter between header and data.
 //Bytes m+2-n:   (D packet) Data to be sent to GroveStreams, in
@@ -348,17 +349,17 @@ void gsXBee::sendCommand(uint8_t* cmd)
 //
 //The maximum XBee packet size is set by PAYLOAD_LEN at the top of this
 //file. Note there is an upper limit, see the XBee ATNP command.
-void gsXBee::sendData(char* data)
+void gsXBee::sendData(char* data, char packetType)
 {
     char *p = payload;
     *p++ = SOH;
-    *p++ = 'D';                                             //data packet
+    *p++ = packetType;                      // packet type
     char *c = compID;
-    while ( (*p++ = *c++) );                                //copy in component ID
-    *(p - 1) = STX;                                         //overlay the string terminator
-    strcpy(p, data);                                        //copy in the data
+    while ( (*p++ = *c++) );                // copy in component ID
+    *(p - 1) = STX;                         // overlay the string terminator
+    strcpy(p, data);                        // copy in the data
     uint8_t len = strlen(payload);
-    zbTX.setAddress64(destAddr);                            //build the tx request packet
+    zbTX.setAddress64(destAddr);            // build the tx request packet
     zbTX.setAddress16(0xFFFE);
     zbTX.setPayload( (uint8_t*)payload );
     zbTX.setPayloadLength(len);
@@ -392,7 +393,7 @@ void gsXBee::sendData(char packetType, uint8_t* data, uint8_t dataLen)
 
 //parse a received packet; check format, extract GroveStreams component ID and data.
 //returns false if there is an error in the format, else true.
-bool gsXBee::parsePacket(void)
+bool gsXBee::parsePacket()
 {
     uint8_t *d = zbRX.getData();
     uint8_t len = zbRX.getDataLength();

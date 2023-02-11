@@ -67,7 +67,7 @@ public:
     xbeeReadStatus_t waitFor(xbeeReadStatus_t stat, uint32_t timeout);
     xbeeReadStatus_t read();
     void sendCommand(uint8_t* cmd);
-    void sendData(char* data);
+    void sendData(char* data, char packetType='D');
     void sendData(char packetType, uint8_t* data, uint8_t len);
     void requestTimeSync(uint32_t utc);
     void sendTimeSync(uint32_t utc);
